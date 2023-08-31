@@ -38,7 +38,7 @@ const App = () => {
 
 
     const getData = () => {
-        // API isteði atýlýp son durum çekilecek
+        // API isteği son durum çekilecek
         fetch("http://localhost:5000/api/Values/getDataFromAPI", {
             method: "GET",
             headers: {
@@ -47,7 +47,7 @@ const App = () => {
         })
             .then((response) => response.json())
             .then((data) => {
-                // API'den gelen sonuçlarý kullan, örneðin:
+                // API'den gelen sonuçları kullanımı
                 console.log("API'den gelen sonuçlar:", data);
                 // Sonuçlarý kullanmak için burada uygun iþlemleri yapabilirsiniz.
                 setInputText(data); // Örnek olarak gelen mesajý inputText olarak ayarladýk
