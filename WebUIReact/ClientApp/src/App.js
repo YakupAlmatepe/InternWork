@@ -1,5 +1,5 @@
 ﻿
-///
+
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 import React, { useEffect, useState } from "react";
 
@@ -9,7 +9,7 @@ const App = () => {
 
     useEffect(() => {
         getData();
-
+        
         const connect = new HubConnectionBuilder()
             .withUrl("http://localhost:5000/myhub")
             .withAutomaticReconnect() // baðlantý var ancak koptuðu anlarda kullanýlýr

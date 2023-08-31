@@ -3,80 +3,104 @@ using Intern.WebAPI.Consumer;
 using Intern.WebAPI.Hubs;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using NLog;
+using NLog.Web;
+
+var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
+logger.Debug("init main");
+
 
 var builder = WebApplication.CreateBuilder(args);
-
-//configuration
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(builder.Environment.ContentRootPath)
-    .AddJsonFile("appsettings.json")
-    .Build();
-//Masstransit Configurasyonu//
-//
-var massTransitHost = configuration["MassTransit:Host"];
-var massTransitUsername = configuration["MassTransit:Username"];
-var massTransitPassword = configuration["MassTransit:Password"];
-
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddSignalR();
-builder.Services.AddDbContext<Context>(options =>
+try
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-});
+    // NLog: Setup NLog for Dependency injection
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
 
-builder.Services.AddCors(policy => policy.AddDefaultPolicy(builder => builder.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowCredentials().AllowAnyMethod().WithExposedHeaders("X-Pagination")));
+    //configuration
+    var configuration = new ConfigurationBuilder()
+        .SetBasePath(builder.Environment.ContentRootPath)
+        .AddJsonFile("appsettings.json")
+        .Build();
+    //Masstransit Configurasyonu//
+    //
+    var massTransitHost = configuration["MassTransit:Host"];
+    var massTransitUsername = configuration["MassTransit:Username"];
+    var massTransitPassword = configuration["MassTransit:Password"];
 
-builder.Services.AddSingleton<MyHub>();
-
-// Add MassTransit and configure RabbitMQ
-builder.Services.AddMassTransit(cfg =>
-{
-    cfg.AddConsumer<ConsumerRMQ>();
-
-    cfg.UsingRabbitMq((context, config) =>
+    // Add services to the container.
+    builder.Services.AddControllers();
+    builder.Services.AddSignalR();
+    builder.Services.AddDbContext<Context>(options =>
     {
-        config.ReceiveEndpoint("Consumer.Random", e =>
-        {
-            e.PrefetchCount = 1;
-            e.ConfigureConsumer<ConsumerRMQ>(context);
-        });
-
-        config.Host(massTransitHost, "/", h =>
-        {
-            h.Username(massTransitUsername);
-            h.Password(massTransitPassword);
-        });
-        //config.Host("192.168.1.159", "/", h =>
-        //{
-        //    h.Username("altis");
-        //    h.Password("altis");
-        //});
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     });
-});
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+    builder.Services.AddCors(policy => policy.AddDefaultPolicy(builder => builder.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowCredentials().AllowAnyMethod().WithExposedHeaders("X-Pagination")));
 
-var app = builder.Build();
+    builder.Services.AddSingleton<MyHub>();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    // Add MassTransit and configure RabbitMQ
+    builder.Services.AddMassTransit(cfg =>
+    {
+        cfg.AddConsumer<ConsumerRMQ>();
+
+        cfg.UsingRabbitMq((context, config) =>
+        {
+            config.ReceiveEndpoint("Consumer.Random", e =>
+            {
+                e.PrefetchCount = 1;
+                e.ConfigureConsumer<ConsumerRMQ>(context);
+            });
+
+            config.Host(massTransitHost, "/", h =>
+            {
+                h.Username(massTransitUsername);
+                h.Password(massTransitPassword);
+            });
+            //config.Host("192.168.1.159", "/", h =>
+            //{
+            //    h.Username("altis");
+            //    h.Password("altis");
+            //});
+        });
+    });
+
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    var app = builder.Build();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.Urls.Add("http://*:5000/");
+
+    app.UseCors();
+    app.UseRouting();
+    app.UseAuthorization();
+
+    app.UseEndpoints(endpoint =>
+    {
+        endpoint.MapHub<MyHub>("/myhub");
+    });
+
+    app.MapControllers();
+    app.Run();
+
 }
-
-app.Urls.Add("http://*:5000/");
-
-app.UseCors();
-app.UseRouting();
-app.UseAuthorization();
-
-app.UseEndpoints(endpoint =>
+catch (Exception ex)
 {
-    endpoint.MapHub<MyHub>("/myhub");
-});
 
-app.MapControllers();
-app.Run();
+    logger.Error(ex, "Stopped program because of exception");
+    throw;
+}
+finally
+{
+    // Ensure to flush and stop internal timers/threads before application-exit (Avoid segmentation fault on Linux)
+    NLog.LogManager.Shutdown();
+}
