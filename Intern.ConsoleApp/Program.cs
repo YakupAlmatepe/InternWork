@@ -1,20 +1,27 @@
 ﻿using DataAccessLayer.Contect;
 using EntityLayer.Concrete;
+using Intern.WebAPI.Consumer;
 using MassTransit;
+using Polly;
+using Context = DataAccessLayer.Contect.Context;
 
 Random randomtemp = new Random();
 
 List<int> randomNumbers = new List<int>();
-var bus = Bus.Factory.CreateUsingRabbitMq(factory =>
+var bus = Bus.Factory.CreateUsingRabbitMq(config =>
 {
-    
-    factory.Host("192.168.1.159", "/", h =>
+
+    config.Host("192.168.1.159", "/", h =>
     {
         h.Username("altis");
         h.Password("altis");
 
     });
+    config.ReceiveEndpoint("Consumer.Random", e =>
+    {
 
+        //e.Consumer<ConsumerRMQ>();
+    });
 });
 
 //Kanal başlatılıyor
@@ -42,3 +49,4 @@ while (true)
 
     }
 }
+bus.Stop();

@@ -58,11 +58,11 @@ try
                 h.Username(massTransitUsername);
                 h.Password(massTransitPassword);
             });
-            //config.Host("192.168.1.159", "/", h =>
-            //{
-            //    h.Username("altis");
-            //    h.Password("altis");
-            //});
+            config.Host("192.168.1.159", "/", h =>
+            {
+                h.Username("altis");
+                h.Password("altis");
+            });
         });
     });
 

@@ -2,8 +2,6 @@
 using EntityLayer.Concrete;
 using Intern.WebAPI.Hubs;
 using MassTransit;
-using Microsoft.AspNetCore.SignalR.Client;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Intern.WebAPI.Consumer
 {
